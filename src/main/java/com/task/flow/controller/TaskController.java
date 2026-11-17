@@ -17,18 +17,24 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping("/")
-    public ResponseEntity<List<Task>> getAllTasks() {
+    public List<Task> getAllTasks() {
         return taskService.getAllTasks();
     }
 
+    @GetMapping("/{id}")
+    public Task getTaskById(@PathVariable Integer id) {
+        return taskService.getTaskById(id);
+    }
+
     @PostMapping("/")
-    public ResponseEntity<Task> addNewTask() {
-        return taskService.addNewTask();
+    public ResponseEntity<Task> addNewTask(@RequestBody Task task) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(taskService.addNewTask(task));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Integer id) {
-        return taskService.updateTask(id);
+    public Task updateTask(@PathVariable Integer id, @RequestBody Task task) {
+        return taskService.updateTask(id, task);
     }
 
     @DeleteMapping("/{id}")
