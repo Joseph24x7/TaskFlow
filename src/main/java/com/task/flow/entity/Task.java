@@ -11,7 +11,15 @@ import java.util.Date;
 public class Task {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "task_seq"
+    )
+    @SequenceGenerator(
+            name = "task_seq",
+            sequenceName = "task_sequence",
+            allocationSize = 1
+    )
     private Integer id;
     private String title;
     private String description;

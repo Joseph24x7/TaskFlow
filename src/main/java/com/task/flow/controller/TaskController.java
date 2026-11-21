@@ -1,8 +1,10 @@
 package com.task.flow.controller;
 
+import com.task.flow.dto.BulkRequest;
 import com.task.flow.entity.Task;
 import com.task.flow.service.TaskService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
+@Slf4j
 public class TaskController {
 
     private final TaskService taskService;
@@ -30,6 +33,18 @@ public class TaskController {
     public ResponseEntity<Task> addNewTask(@RequestBody Task task) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(taskService.addNewTask(task));
+    }
+
+    @PostMapping("/bulk")
+    private ResponseEntity<Integer> addBulkTask(@RequestBody BulkRequest bulkRequest) {
+
+        long startTime = System.currentTimeMillis();
+
+        Integer tasksProcessed = taskService.addBulkTask(bulkRequest.task(), bulkRequest.count());
+
+        log.info("Total time for {} of task: {}", bulkRequest.count(), System.currentTimeMillis() - startTime);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(tasksProcessed);
     }
 
     @PutMapping("/{id}")
