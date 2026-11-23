@@ -1,9 +1,14 @@
 package com.task.flow.service;
 
+import com.task.flow.dto.TaskRequest;
+import com.task.flow.dto.TaskResponse;
 import com.task.flow.entity.Task;
+import com.task.flow.exception.TaskNotFoundException;
 import com.task.flow.repository.TaskRepository;
+import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,69 +23,91 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
 
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(TaskService::toResponse)
+                .toList();
     }
 
-    public Task addNewTask(Task task) {
-        return taskRepository.save(task);
+    @Transactional
+    public TaskResponse addNewTask(TaskRequest taskRequest) {
+        return toResponse(taskRepository.save(toEntity(taskRequest)));
     }
 
-    public Task updateTask(Integer id, Task task) {
+    @Transactional
+    public TaskResponse updateTask(Integer id, TaskRequest taskRequest) {
+        Task existingTask = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
 
-        Task existingTask = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("ID not found"));
+        Task updatedTask = updateEntity(existingTask, taskRequest);
 
-        existingTask.updateTask(task);
+        taskRepository.save(updatedTask);
 
-        taskRepository.save(existingTask);
+        return toResponse(updatedTask);
+    }
+
+    private Task updateEntity(Task existingTask, TaskRequest taskRequest) {
+
+        if (StringUtils.isNotBlank(taskRequest.title())) {
+            existingTask.setTitle(taskRequest.title());
+        }
+        if (StringUtils.isNotBlank(taskRequest.description())) {
+            existingTask.setDescription(taskRequest.description());
+        }
+        if (taskRequest.endDate() != null) {
+            existingTask.setEndDate(taskRequest.endDate());
+        }
 
         return existingTask;
     }
 
     public void deleteTask(Integer id) {
-
-        Task existingTask = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("ID not found"));
-
+        Task existingTask = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
         taskRepository.delete(existingTask);
-
     }
 
-    public Task getTaskById(Integer id) {
-        return taskRepository.findById(id).orElseThrow(() -> new RuntimeException("ID not found"));
+    @Transactional(readOnly = true)
+    public TaskResponse getTaskById(Integer id) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        return toResponse(task);
     }
 
-    public int addBulkTask(Task task, int count) {
+    public int addBulkTask(TaskRequest taskRequest, int count) {
 
         try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
 
             List<Future<?>> futures = new ArrayList<>();
 
             for (int i = 0; i < count; i++) {
-
-                futures.add(executorService.submit(() -> {
-
-                    Task newTask = new Task();
-
-                    newTask.setDescription(task.getDescription());
-                    newTask.setTitle(task.getTitle());
-                    newTask.setEndDate(task.getEndDate());
-
-                    taskRepository.save(newTask);
-                }));
+                futures.add(executorService.submit(() -> taskRepository.save(toEntity(taskRequest))));
             }
 
+            int completedTasks = 0;
             for (Future<?> future : futures) {
                 future.get();
+                completedTasks++;
             }
-
-            return futures.size();
+            return completedTasks;
 
         } catch (ExecutionException e) {
-            throw new RuntimeException(e.getCause());
+            throw new IllegalStateException("A task could not be created during bulk processing", e.getCause());
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Bulk task creation was interrupted", e);
         }
+    }
+
+    private static Task toEntity(TaskRequest taskRequest) {
+        Task task = new Task();
+        task.setTitle(taskRequest.title());
+        task.setDescription(taskRequest.description());
+        task.setEndDate(taskRequest.endDate());
+        return task;
+    }
+
+    private static TaskResponse toResponse(Task task) {
+        return new TaskResponse(task.getId(), task.getTitle(), task.getDescription(), task.getEndDate());
     }
 }
