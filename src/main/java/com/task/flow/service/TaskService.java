@@ -5,7 +5,6 @@ import com.task.flow.dto.TaskResponse;
 import com.task.flow.entity.Task;
 import com.task.flow.exception.TaskNotFoundException;
 import com.task.flow.repository.TaskRepository;
-import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,17 +47,9 @@ public class TaskService {
     }
 
     private Task updateEntity(Task existingTask, TaskRequest taskRequest) {
-
-        if (StringUtils.isNotBlank(taskRequest.title())) {
-            existingTask.setTitle(taskRequest.title());
-        }
-        if (StringUtils.isNotBlank(taskRequest.description())) {
-            existingTask.setDescription(taskRequest.description());
-        }
-        if (taskRequest.endDate() != null) {
-            existingTask.setEndDate(taskRequest.endDate());
-        }
-
+        existingTask.setTitle(taskRequest.title());
+        existingTask.setDescription(taskRequest.description());
+        existingTask.setEndDate(taskRequest.endDate());
         return existingTask;
     }
 
