@@ -1,11 +1,14 @@
 package com.task.flow.dto;
 
-import com.task.flow.entity.Task;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 public record BulkRequest(
-        @Min(1) @Max(10000) Integer count,
-        @Valid Task task
+        @NotNull
+        @Size(max = 1000, message = "Maximum 1000 tasks are allowed")
+        @Valid
+        List<TaskRequest> tasks
 ) {}
