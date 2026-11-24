@@ -43,10 +43,10 @@ public class TaskController {
 
         long startTime = System.nanoTime();
 
-        int tasksProcessed = taskService.addBulkTask(bulkRequest.task(), bulkRequest.count());
+        int tasksProcessed = taskService.addBulkTask(bulkRequest.tasks());
 
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-        log.info("Created {}/{} tasks in {} ms", tasksProcessed, bulkRequest.count(), elapsedMillis);
+        log.info("Processed {} tasks in {} ms", tasksProcessed, elapsedMillis);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(tasksProcessed);
     }

@@ -73,30 +73,10 @@ public class TaskService {
         return toResponse(task);
     }
 
-    public int addBulkTask(TaskRequest taskRequest, int count) {
-
-        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-
-            List<Future<?>> futures = new ArrayList<>();
-
-            for (int i = 0; i < count; i++) {
-                futures.add(executorService.submit(() -> taskRepository.save(toEntity(taskRequest))));
-            }
-
-            int completedTasks = 0;
-            for (Future<?> future : futures) {
-                future.get();
-                completedTasks++;
-            }
-            return completedTasks;
-
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("A task could not be created during bulk processing", e.getCause());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Bulk task creation was interrupted", e);
-        }
+    @Transactional
+    public int addBulkTask(List<TaskRequest> taskRequests) {
+        List<Task> tasks = toEntity(taskRequests);
+        return taskRepository.saveAll(tasks).size();
     }
 
     private static Task toEntity(TaskRequest taskRequest) {
@@ -105,6 +85,21 @@ public class TaskService {
         task.setDescription(taskRequest.description());
         task.setEndDate(taskRequest.endDate());
         return task;
+    }
+
+    private static List<Task> toEntity(List<TaskRequest> taskRequests) {
+
+        List<Task> tasks = new ArrayList<>(taskRequests.size());
+
+        taskRequests.forEach(taskRequest -> {
+            Task task = new Task();
+            task.setTitle(taskRequest.title());
+            task.setDescription(taskRequest.description());
+            task.setEndDate(taskRequest.endDate());
+            tasks.add(task);
+        });
+
+        return tasks;
     }
 
     private static TaskResponse toResponse(Task task) {
