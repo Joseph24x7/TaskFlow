@@ -31,10 +31,13 @@ class TaskServiceBulkTest {
 
     @Test
     void bulkCreationRollsBackWhenAnyInsertFails() {
-        jdbcTemplate.execute("ALTER TABLE tasks ADD CONSTRAINT even_task_ids CHECK (MOD(id, 2) = 0)");
+        jdbcTemplate.execute("ALTER TABLE tasks ADD CONSTRAINT reject_fail_title CHECK (title <> 'fail')");
 
         assertThrows(RuntimeException.class, () -> taskService.addBulkTask(
-                List.of(new TaskRequest("bulk task", "atomicity test", LocalDate.now()))
+                List.of(
+                        new TaskRequest("succeeds", "atomicity test", LocalDate.now()),
+                        new TaskRequest("fail", "atomicity test", LocalDate.now())
+                )
         ));
 
         assertEquals(0, taskRepository.count());
