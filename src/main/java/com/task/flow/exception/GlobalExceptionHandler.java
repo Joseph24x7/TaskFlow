@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -30,6 +31,20 @@ public class GlobalExceptionHandler {
                         (firstMessage, ignored) -> firstMessage
                 ));
         return errorResponse(HttpStatus.BAD_REQUEST, "Request validation failed", validationErrors);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        return errorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Invalid value for parameter '" + exception.getName() + "'",
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException exception) {
+        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Bulk task creation failed", Map.of());
     }
 
     private ResponseEntity<ApiError> errorResponse(HttpStatus status,  String message, Map<String, String> validationErrors) {
